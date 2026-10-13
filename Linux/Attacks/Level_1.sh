@@ -13,6 +13,12 @@ block_port_80() {
         apt-get install -y ufw
     fi
  
+    # Allow SSH (22) BEFORE enabling UFW. Enabling UFW applies its default
+    # incoming=deny policy, which would otherwise drop the live SSH session
+    # running this script and block every later deploy_levelN.sh (port 22).
+    # We only want to block port 80, so keep 22 open.
+    ufw allow 22/tcp
+
     # 'yes' auto-answers the "proceed?" prompt when enabling UFW
     yes | ufw enable
     ufw deny 80/tcp

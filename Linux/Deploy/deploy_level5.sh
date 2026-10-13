@@ -11,7 +11,10 @@ SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SELF_DIR/targets.conf"
 
 # Locate the payload whether run from the repo or from /opt/ccdc.
-if [ -z "${ATTACK_DIR:-}" ]; then
+# If ATTACK_DIR is preset but wrong, fall through to the search instead of
+# trusting it blindly.
+if [ -z "${ATTACK_DIR:-}" ] || [ ! -f "${ATTACK_DIR}/Level_${LEVEL}.sh" ]; then
+    ATTACK_DIR=""
     for cand in "$SELF_DIR/../attacks" "$SELF_DIR/../Attacks" /opt/ccdc/attacks; do
         [ -f "$cand/Level_${LEVEL}.sh" ] && ATTACK_DIR="$cand" && break
     done
