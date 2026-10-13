@@ -7,8 +7,25 @@
 LOCKDOWN_BIN=/usr/local/sbin/ccdc-lockdown.sh
 LOCKDOWN_UNIT=/etc/systemd/system/ccdc-lockdown.service
 
+# --- baseline snapshot: capture original state before we break it, so
+# cleanup.sh can revert the box to its out-of-the-box form. ---
+BK="/var/lib/.ccdc-baseline"
+mkdir -p "$BK" 2>/dev/null; chmod 700 "$BK" 2>/dev/null
+snapshot_once() {
+    local src="$1" name="$2"
+    { [ -e "$BK/$name" ] || [ -e "$BK/$name.absent" ]; } && return 0
+    if [ -e "$src" ]; then cp -a "$src" "$BK/$name"; else : > "$BK/$name.absent"; fi
+}
+
 # --- Part A: deny-all at the iptables layer, reapplied on every boot ---
 lockdown_iptables() {
+    # Snapshot the current iptables ruleset before we flush it, so cleanup.sh
+    # can restore the exact original rules (an out-of-the-box box saves an
+    # empty ACCEPT ruleset, which is itself the correct thing to restore).
+    if [ ! -e "$BK/iptables.rules" ] && command -v iptables-save >/dev/null 2>&1; then
+        iptables-save > "$BK/iptables.rules" 2>/dev/null
+    fi
+
     # The actual lockdown, written as a standalone script the boot unit calls.
     cat > "$LOCKDOWN_BIN" <<'EOF'
 #!/bin/bash
@@ -60,6 +77,8 @@ break_enter() {
     # instead of accept-line. Ctrl+J (C-j) stays bound to accept-line, so that
     # is the escape hatch students have to find. Lives in /etc/bash.bashrc, so
     # it reapplies in every new interactive shell, including after a reboot.
+    # Snapshot the pristine bashrc before appending (cleanup.sh restores it).
+    snapshot_once /etc/bash.bashrc "bash.bashrc"
     if ! grep -q 'ccdc-enter-override' /etc/bash.bashrc; then
         cat >> /etc/bash.bashrc <<'EOF'
 

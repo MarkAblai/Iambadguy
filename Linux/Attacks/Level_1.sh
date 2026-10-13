@@ -11,6 +11,10 @@ block_port_80() {
     if ! command -v ufw >/dev/null 2>&1; then
         apt-get update -y
         apt-get install -y ufw
+        # Record that WE installed ufw so cleanup.sh can purge it and restore
+        # the original out-of-the-box state (no ufw present).
+        mkdir -p /var/lib/.ccdc-baseline && chmod 700 /var/lib/.ccdc-baseline
+        : > /var/lib/.ccdc-baseline/ufw_installed_by_ccdc
     fi
  
     # Allow SSH (22) BEFORE enabling UFW. Enabling UFW applies its default
