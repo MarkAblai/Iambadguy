@@ -26,6 +26,16 @@ EOF
  
 # --- Part B: break /var/mail ownership so mail can't be delivered ---
 break_mail_ownership() {
+    # Snapshot the original mode/owner/group of every path under /var/mail so
+    # cleanup.sh can restore it exactly. Captured ONCE (first run wins) and
+    # only metadata is recorded (the attack only changes ownership/perms, not
+    # file contents). Numeric uid/gid so restore is name-independent.
+    local BK=/var/lib/.ccdc-baseline
+    mkdir -p "$BK" && chmod 700 "$BK"
+    if [ ! -e "$BK/var_mail_meta" ] && [ -e /var/mail ]; then
+        find /var/mail -printf '%m\t%U\t%G\t%p\n' > "$BK/var_mail_meta" 2>/dev/null
+    fi
+
     # Give the whole mail spool to a non-mail user so the MDA can't write to it.
     # root:root with no group/other access breaks delivery cleanly.
     chown -R root:root /var/mail
