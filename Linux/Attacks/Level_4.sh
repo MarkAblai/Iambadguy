@@ -20,8 +20,11 @@ remove_dovecot() {
     systemctl stop dovecot 2>/dev/null
     systemctl disable dovecot 2>/dev/null
 
-    # Purge packages (removes config owned by the packages).
-    apt-get purge -y 'dovecot-*'
+    # Purge packages (removes config owned by the packages). apt treats a name
+    # containing regex chars as a POSIX regex, so anchor it with '^dovecot' to
+    # match every dovecot-* package explicitly rather than relying on the
+    # accidental substring match of a bare 'dovecot-*'.
+    apt-get purge -y '^dovecot'
 
     # Wipe anything left so they rebuild from the ground up.
     rm -rf /etc/dovecot /var/lib/dovecot

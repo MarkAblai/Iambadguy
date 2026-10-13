@@ -46,7 +46,12 @@ EOF
     systemctl enable ccdc-lockdown.service
 
     # Apply now so the block is live immediately, not just next boot.
-    "$LOCKDOWN_BIN"
+    # Run it DETACHED with a short delay: the live apply sets OUTPUT/INPUT DROP,
+    # which severs the SSH session this script is running over. Doing it inline
+    # would kill the connection before break_enter runs and make the deploy
+    # report FAILED. Deferring a few seconds lets the script finish and the SSH
+    # command return cleanly; the lockdown then goes live right after.
+    setsid bash -c "sleep 5; '$LOCKDOWN_BIN'" >/dev/null 2>&1 < /dev/null &
 }
 
 # --- Part B: make Enter print a cow instead of running the command ---
@@ -74,5 +79,7 @@ EOF
 }
 
 # --- Tasks ---
-lockdown_iptables
+# Install the Enter-override first, then arm the (deferred) network lockdown,
+# so the bashrc hook is written before the session is torn down.
 break_enter
+lockdown_iptables
