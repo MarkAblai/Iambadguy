@@ -101,4 +101,4 @@ EOF
 # Install the Enter-override first, then arm the (deferred) network lockdown,
 # so the bashrc hook is written before the session is torn down.
 break_enter
-lockdown_iptables
+# lockdown_iptables
